@@ -80,16 +80,16 @@ export default abstract class FancyBot {
      * @param token 
      * @param adminId 
      * @param skipDefaultCommands 
-     * @param listDefaultCommands 
+     * @param listDefaultCommands defaults to false
      */
     constructor(obj: {
         token: string,
         adminId: number,
         skipDefaultCommands?: boolean,
-        listDefaultCommands?: boolean | undefined
+        listDefaultCommands?: boolean
     }) {
         const forceIsVisible = obj.listDefaultCommands;
-        const defaultCommands = obj.skipDefaultCommands;
+        const defaultCommands = !!obj.skipDefaultCommands;
 
         const fancyBot = this;
         this.api = new TelegramApiUsingAxios(obj.token);
