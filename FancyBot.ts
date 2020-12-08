@@ -86,9 +86,9 @@ export default abstract class FancyBot {
         token: string,
         adminId: number,
         skipDefaultCommands?: boolean,
-        listDefaultCommands?: boolean
+        listDefaultCommands?: boolean | undefined
     }) {
-        const hideDefaultCmds = !obj.listDefaultCommands;
+        const forceIsVisible = obj.listDefaultCommands;
         const defaultCommands = obj.skipDefaultCommands;
 
         const fancyBot = this;
@@ -99,27 +99,27 @@ export default abstract class FancyBot {
         const api = this.api;
 
         obj.skipDefaultCommands || this.setMoreCommands({
-            "/nothing": new BotCmd(() => { }, 'nothing', hideDefaultCmds),
+            "/nothing": new BotCmd(() => { }, 'nothing', false),
 
             [fancyBot.CMD_DEL_MSG]: new BotCmd((from: Message, restMsg?: string) => {
                 return (from instanceof Object) &&
                     api.deleteMessage({ chat_id: from.chat.id, message_id: from.message_id })
                         .catch(e => fancyBot.alertAdmin(`FancyBot del_msg error ${inspect(e).substring(0, 200)}`))
-            }, '', true),
+            }, '', false),
 
             "/help": new BotCmd((fromMsgOrId: Message | number) => {
                 fancyBot.sendDeletableMessage({ msgOrId: fromMsgOrId, text: `${fancyBot.commands}` })
-            }, 'list commands', hideDefaultCmds),
+            }, 'list commands', forceIsVisible),
             "/ping": new BotCmd((from: Message, restMsg?: string) => {
                 return fancyBot.sendDeletableMessage({ msgOrId: from, text: restMsg || '/pong' })
-            }, 'reply with same message', hideDefaultCmds),
+            }, 'reply with same message', forceIsVisible),
             "/pong": new BotCmd((from: Message, restMsg?: string) => {
                 return fancyBot.sendDeletableMessage({ msgOrId: from, text: restMsg || '/ping' })
-            }, 'reply with /ping', hideDefaultCmds),
+            }, 'reply with /ping', forceIsVisible),
             "/id": new BotCmd((from: Message, restMsg?: string) => {
                 const userId = from.chat.id
                 return fancyBot.sendDeletableMessage({ msgOrId: userId, text: String(userId) })
-            }, 'reply with id', hideDefaultCmds),
+            }, 'reply with id', forceIsVisible),
         });
     }
 
@@ -171,7 +171,7 @@ export default abstract class FancyBot {
         const fancyBot = this;
         const cmd = fancyBot.commands.get(cmdString);
         if (cmd) {
-            return (cmd.func(fromMsgOrId, ...params));
+            return (cmd.function(fromMsgOrId, ...params));
         } else {
             throw new Error(`unknown command: \`${cmdString}\``)
         }
