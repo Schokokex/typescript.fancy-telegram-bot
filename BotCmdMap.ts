@@ -1,3 +1,4 @@
+import { Immutable } from './utils/Immutable';
 import { BotCmd } from "./BotCmd";
 
 export default class BotCmdMap extends Map<string, BotCmd> {
@@ -14,4 +15,17 @@ export default class BotCmdMap extends Map<string, BotCmd> {
         })
         return toString
     }
+
+    toJson(): Immutable<{ [a: string]: BotCmd }> {
+        const a: { [a: string]: BotCmd } = {};
+        this.forEach((val, key) => { a[key] = val });
+        return a;
+    }
+    
+    toArray(): Immutable<[_: string, _: BotCmd][]> {
+        const a: [_: string, _: BotCmd][] = [];
+        this.forEach((val, key) => { a.push([key, val]) });
+        return a;
+    }
+
 }

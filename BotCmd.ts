@@ -4,9 +4,10 @@ export class BotCmd {
     readonly function: BotCmdFunction;
     description?: string;
     overrideDontShow?: boolean;
-    constructor(foo: BotCmdFunction, desc?: string, overr = false) {
-        this.function = foo;
+    forceIsVisible: boolean | undefined;
+    constructor(func: BotCmdFunction, desc?: string, forceIsVisible?: boolean | undefined) {
+        this.function = func;
         this.description = desc;
-        this.overrideDontShow = overr;
+        this.forceIsVisible = forceIsVisible;
     }
 }

@@ -1,3 +1,4 @@
+import { BotCommand } from './TelegramApi/types/BotCommand';
 import Axios from 'axios';
 import { Request, RequestHandler, Response } from "express";
 import { inspect } from 'util';
@@ -126,6 +127,11 @@ export default abstract class FancyBot {
 
     // #region Protected Methods (8)
 
+    protected async uploadCommands() {
+        const cmds = this.commands.toArray().filter(v => (v[1].forceIsVisible === undefined) ? v[1].description : v[1].forceIsVisible).map(v => { return { command: v[0], description: v[1].description || '' } })
+        this.api.setMyCommands({ commands: cmds })
+    }
+
     protected getImprovedMessageEntities(message: Message): MessageEntityImproved[] {
         if (message.text && message.entities) {
             const offsetWhitespace = message.text.indexOf(message.text.trimStart())
@@ -165,7 +171,7 @@ export default abstract class FancyBot {
         const fancyBot = this;
         const cmd = fancyBot.commands.get(cmdString);
         if (cmd) {
-            return (cmd.function(fromMsgOrId, ...params));
+            return (cmd.func(fromMsgOrId, ...params));
         } else {
             throw new Error(`unknown command: \`${cmdString}\``)
         }
@@ -177,7 +183,7 @@ export default abstract class FancyBot {
      */
     protected async sendDeletableMessage(obj: NewMsgParams): Promise<FetchResult | false> {
         const buttons = (obj.buttons || []).concat([[this.DELETE_BUTTON]])
-        const paramCopy = {...obj, buttons:buttons}
+        const paramCopy = { ...obj, buttons: buttons }
         const newM = await this.newMessage(paramCopy);
         //removing old message when new one was created
         if (obj.msgOrId instanceof Object && newM) {
