@@ -176,7 +176,7 @@ export default abstract class FancyBot {
      * @param obj if an obj.msgOrId Message is provided, its getting removed here
      */
     protected async sendDeletableMessage(obj: NewMsgParams): Promise<FetchResult | false> {
-        const buttons = (obj.buttons || []).concat([this.DELETE_BUTTON])
+        const buttons = (obj.buttons || []).concat([[this.DELETE_BUTTON]])
         const paramCopy = {...obj, buttons:buttons}
         const newM = await this.newMessage(paramCopy);
         //removing old message when new one was created
