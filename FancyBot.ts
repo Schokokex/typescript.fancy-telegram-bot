@@ -116,7 +116,7 @@ export default abstract class FancyBot {
                 return fancyBot.sendDeletableMessage({ msgOrId: from, text: restMsg || '/ping' })
             }, 'reply with /ping', hideDefaultCmds),
             "/id": new BotCmd((from: Message, restMsg?: string) => {
-                const userId = fancyBot.getUserID(from);
+                const userId = from.chat.id
                 return fancyBot.sendDeletableMessage({ msgOrId: userId, text: String(userId) })
             }, 'reply with id', hideDefaultCmds),
         });
@@ -160,13 +160,6 @@ export default abstract class FancyBot {
         }
     }
 
-    protected getUserID(msgOrId: Message | number): number {
-        if (msgOrId instanceof Object) {
-            return msgOrId.chat.id;
-        } else {
-            return msgOrId;
-        }
-    }
 
     protected async runCommand(cmdString: string, fromMsgOrId: Message, ...params: any[]) {
         const fancyBot = this;
@@ -251,12 +244,12 @@ export default abstract class FancyBot {
 
     private async newMessage(obj: NewMsgParams): Promise<boolean> {
         //TODO
-        const chatId = this.getUserID(obj.msgOrId);
+        const chatId = obj.msgOrId instanceof Object ? obj.msgOrId.chat.id : obj.msgOrId
         const keyb = obj.buttons && { inline_keyboard: obj.buttons };
         const file = obj.file
 
         if (file) {
-            const [res, foo, i] = await new FindFunction<FetchResult>(r => r.ok).run(
+            const [res, foo, i, fails] = await new FindFunction<FetchResult>(r => r.ok || r.description.includes("wrong file identifier")).run(
                 () => this.api.sendPhoto({ chat_id: chatId, photo: file, caption: obj.text, reply_markup: keyb }),
                 () => this.api.sendAudio({ chat_id: chatId, audio: file, caption: obj.text, reply_markup: keyb }),
                 () => this.api.sendVideo({ chat_id: chatId, video: file, caption: obj.text, reply_markup: keyb }),
@@ -265,11 +258,13 @@ export default abstract class FancyBot {
                 () => this.api.sendVideoNote({ chat_id: chatId, video_note: obj.text, reply_markup: keyb }),
                 () => this.api.sendDocument({ chat_id: chatId, document: file, caption: obj.text, reply_markup: keyb }),
             );
-            if (res) {
+            if (res?.description?.includes("wrong file identifier")) {
+                return this.sendDeletableMessage({ msgOrId: chatId, text: `Corrupted File: ${file}` })
+            } else if (res) {
                 return true;
             } else {
-                this.alertAdmin(`FancyBot all documents failed ${inspect(obj)}`);
-                throw new Error(`FancyBot all documents failed ${inspect(obj)}`);
+                this.alertAdmin(`FancyBot all documents failed ${inspect(fails)}`);
+                throw new Error(`FancyBot all documents failed ${inspect(fails)}`);
             }
         } else {
             return (await this.api.sendMessage({ chat_id: chatId, text: obj.text, reply_markup: keyb })).ok
@@ -282,7 +277,6 @@ export default abstract class FancyBot {
         if (file) {
             try {
                 const [res, foo, i] = await new FindFunction<FetchResult>(r => {
-                    if (r.description?.includes("message to edit not found")) throw new Error(r.description);
                     return r.ok || r.description.includes("exactly the same");
                 }).run(
                     () => this.api.editMessageMedia({ media: { type: 'photo', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
@@ -292,7 +286,7 @@ export default abstract class FancyBot {
                     () => this.api.editMessageMedia({ media: { type: 'document', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
                 );
                 console.log(`Fanczzzz ${res} ${foo} ${i}`)
-                if (res) {
+                if (res?.ok || res?.description.includes("exactly the same")) {
                     return true;
                 }
             } catch (error) { }

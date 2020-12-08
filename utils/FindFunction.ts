@@ -1,3 +1,4 @@
+import { Immutable } from './Immutable';
 type Func<T> = () => (T | Promise<T>)
 
 /**
@@ -23,15 +24,19 @@ export default class FindFunction<T> {
      * [2] undefined
      * [3] array of responses
      */
-    readonly run = async (...functions: Func<T>[]): Promise<[T, Func<T>, number] | [undefined, undefined, undefined]> => {
+    readonly run = async (...functions: Func<T>[]): Promise<Immutable<
+        [T, Func<T>, number, T[]] |
+        [undefined, undefined, undefined, T[]]
+    >> => {
+        const res = [];
         //run functions one by one
         for (const [i, foo] of functions.entries()) {
             if (foo instanceof Function) {
-                const result = await foo();
+                res[i] = await foo();
                 // "break" if valid function
-                if (this.validator(result)) return [result, foo, i];
+                if (this.validator(res[i])) return [res[i], foo, i, res];
             }
         }
-        return [undefined, undefined, undefined];
+        return [undefined, undefined, undefined, res];
     }
 }
