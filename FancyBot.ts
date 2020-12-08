@@ -6,13 +6,15 @@ import { BotCmd } from "./BotCmd";
 import BotCmdMap from './BotCmdMap';
 import CallbackButton from './CallbackButton';
 import MessageEntityImproved from './MessageEntityImproved';
+import TelegramApiUsingAxios from './TelegramApiUsingAxios';
+
 import TelegramApi, { FetchResult } from './TelegramApi/TelegramApi';
 import { CallbackQuery } from './TelegramApi/types/CallbackQuery';
 import { InlineKeyboardButton } from './TelegramApi/types/InlineKeyboardButton';
 import { InputFile } from './TelegramApi/types/InputFile';
 import { Message } from './TelegramApi/types/Message';
 import { Update } from './TelegramApi/types/Update';
-import TelegramApiUsingAxios from './TelegramApiUsingAxios';
+
 import FindFunction from "./utils/FindFunction";
 
 type NewMsgParams = { msgOrId: number | Message, text: string, file?: undefined | InputFile | string, buttons?: InlineKeyboardButton[][] };
@@ -29,6 +31,7 @@ export default abstract class FancyBot {
 
     readonly CMD_DEL_MSG = "del";
     readonly DELETE_BUTTON = new CallbackButton("❌", this.CMD_DEL_MSG);
+
     readonly alertAdmin = (message: string) => {
         this.sendDeletableMessage({ msgOrId: this.adminID, text: "Alert: " + message.substr(0, 3000) }).catch(console.error);
     }

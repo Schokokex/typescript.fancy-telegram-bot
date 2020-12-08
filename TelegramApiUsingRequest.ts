@@ -1,8 +1,9 @@
+import { rejects } from 'assert';
 import request, { Response } from 'request';
 
-import TelegramApi from './TelegramApi/TelegramApi';
+import TelegramApi, { FetchResult } from './TelegramApi/TelegramApi';
 
-export default class TelegramApiUsingRequest extends TelegramApi {
+class TelegramApiUsingRequest extends TelegramApi {
     // #region Properties (1)
 
     private token;
@@ -23,7 +24,8 @@ export default class TelegramApiUsingRequest extends TelegramApi {
 
     // #region Protected Methods (1)
 
-    protected fetch(methodName: string, params: { [key: string]: any }) {
+    protected fetch(methodName: string, params: object): Promise<FetchResult> {
+        return new Promise((res, rej) => { rej("deprecated") });
         const url = this.getFullUrl(this.token, methodName);
         const paramsCopy: { [key: string]: string } = {};
         for (const key in params) {
