@@ -249,7 +249,10 @@ export default abstract class FancyBot {
         const file = obj.file
 
         if (file) {
-            const [res, foo, i, fails] = await new FindFunction<FetchResult>(r => r.ok || r.description.includes("wrong file identifier")).run(
+            const [res, foo, i, fails] = await new FindFunction<FetchResult>(
+                r => r.ok,
+                r => r.description?.includes("wrong file identifier")
+            ).run(
                 () => this.api.sendPhoto({ chat_id: chatId, photo: file, caption: obj.text, reply_markup: keyb }),
                 () => this.api.sendAudio({ chat_id: chatId, audio: file, caption: obj.text, reply_markup: keyb }),
                 () => this.api.sendVideo({ chat_id: chatId, video: file, caption: obj.text, reply_markup: keyb }),
@@ -258,10 +261,10 @@ export default abstract class FancyBot {
                 () => this.api.sendVideoNote({ chat_id: chatId, video_note: obj.text, reply_markup: keyb }),
                 () => this.api.sendDocument({ chat_id: chatId, document: file, caption: obj.text, reply_markup: keyb }),
             );
-            if (res?.description?.includes("wrong file identifier")) {
-                return this.sendDeletableMessage({ msgOrId: chatId, text: `Corrupted File: ${file}` })
-            } else if (res) {
+            if (res) {
                 return true;
+            } else if (fails[0]?.description?.includes("wrong file identifier")) {
+                return this.sendDeletableMessage({ msgOrId: chatId, text: `Corrupted File: ${file}` })
             } else {
                 this.alertAdmin(`FancyBot all documents failed ${inspect(fails)}`);
                 throw new Error(`FancyBot all documents failed ${inspect(fails)}`);
@@ -276,9 +279,9 @@ export default abstract class FancyBot {
         const file = obj.file;
         if (file) {
             try {
-                const [res, foo, i] = await new FindFunction<FetchResult>(r => {
-                    return r.ok || r.description.includes("exactly the same");
-                }).run(
+                const [res, foo, i] = await new FindFunction<FetchResult>(
+                    r => r.ok || r.description.includes("exactly the same"),
+                ).run(
                     () => this.api.editMessageMedia({ media: { type: 'photo', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
                     () => this.api.editMessageMedia({ media: { type: 'animation', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
                     () => this.api.editMessageMedia({ media: { type: 'audio', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
@@ -286,7 +289,7 @@ export default abstract class FancyBot {
                     () => this.api.editMessageMedia({ media: { type: 'document', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
                 );
                 console.log(`Fanczzzz ${res} ${foo} ${i}`)
-                if (res?.ok || res?.description.includes("exactly the same")) {
+                if (res) {
                     return true;
                 }
             } catch (error) { }

@@ -3,11 +3,19 @@ type Func<T> = () => (T | Promise<T>)
 
 /**
  * an implementation similar to [].find() , but works with async functions
+ * 
  */
 export default class FindFunction<T> {
     private readonly validator;
-    constructor(validator: (result: T) => any) {
+    private readonly breakCondition;
+    /**
+     * 
+     * @param validator a Function to fiter the good result
+     * @param breakCondition optional (Gets executed First!): stop testing and return Fail
+     */
+    constructor(validator: (result: T) => any, breakCondition?: (result: T) => any) {
         this.validator = validator;
+        this.breakCondition = breakCondition;
     }
     /**
      * 
@@ -34,6 +42,7 @@ export default class FindFunction<T> {
             if (foo instanceof Function) {
                 res[i] = await foo();
                 // "break" if valid function
+                if (this.breakCondition?.(res[i])) break;
                 if (this.validator(res[i])) return [res[i], foo, i, res];
             }
         }
