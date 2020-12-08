@@ -171,14 +171,14 @@ export default abstract class FancyBot {
         }
     }
 
-    protected async sendDeletableMessage(obj: NewMsgParams): Promise<boolean> {
-        const deleteButtonRow = [this.DELETE_BUTTON];
-        if (undefined == obj.buttons) {
-            obj.buttons = [deleteButtonRow];
-        } else {
-            obj.buttons.push(deleteButtonRow);
-        }
-        const newM = await this.newMessage(obj);
+    /**
+     * 
+     * @param obj if an obj.msgOrId Message is provided, its getting removed here
+     */
+    protected async sendDeletableMessage(obj: NewMsgParams): Promise<FetchResult | false> {
+        const buttons = (obj.buttons || []).concat([this.DELETE_BUTTON])
+        const paramCopy = {...obj, buttons:buttons}
+        const newM = await this.newMessage(paramCopy);
         //removing old message when new one was created
         if (obj.msgOrId instanceof Object && newM) {
             this.api.deleteMessage({ chat_id: obj.msgOrId.chat.id, message_id: obj.msgOrId.message_id })
@@ -186,7 +186,7 @@ export default abstract class FancyBot {
         return newM;
     }
 
-    protected async sendPermanentMessage(obj: UpdateMsgParams): Promise<boolean> {
+    protected async sendPermanentMessage(obj: UpdateMsgParams): Promise<FetchResult | false> {
         return this.updateMessage(obj, true)
     }
 
@@ -242,7 +242,7 @@ export default abstract class FancyBot {
         }
     }
 
-    private async newMessage(obj: NewMsgParams): Promise<boolean> {
+    private async newMessage(obj: NewMsgParams): Promise<FetchResult | false> {
         //TODO
         const chatId = obj.msgOrId instanceof Object ? obj.msgOrId.chat.id : obj.msgOrId
         const keyb = obj.buttons && { inline_keyboard: obj.buttons };
@@ -263,24 +263,24 @@ export default abstract class FancyBot {
                     () => this.api.sendDocument({ chat_id: chatId, document: file, caption: obj.text, reply_markup: keyb }),
                 );
                 if (res) {
-                    return true;
+                    return res;
                 } else if (fails[0]?.description?.includes("wrong file identifier")) {
                     this.sendDeletableMessage({ msgOrId: chatId, text: `Corrupted File: ${file}` })
                     throw new Error(`Corrupted File ${file}`);
                 } else {
-                    this.alertAdmin(`FancyBot all documents failed ${inspect(fails)}`);
-                    throw new Error(`FancyBot all documents failed ${inspect(fails)}`);
+                    this.alertAdmin(`FancyBot newMessage all documents failed ${inspect(fails)}`);
+                    throw new Error(`FancyBot newMessage all documents failed ${inspect(fails)}`);
                 }
             } catch (e) {
                 this.alertAdmin(`FancyBot newMessage error ${inspect(e)}`);
                 throw new Error(`FancyBot newMessage error ${inspect(e)}`);
             }
         } else {
-            return (await this.api.sendMessage({ chat_id: chatId, text: obj.text, reply_markup: keyb })).ok
+            return this.api.sendMessage({ chat_id: chatId, text: obj.text, reply_markup: keyb });
         }
     }
 
-    private async updateMessage(obj: UpdateMsgParams, elseNew = false): Promise<boolean> {
+    private async updateMessage(obj: UpdateMsgParams, elseNew = false): Promise<FetchResult | false> {
         const keyb = obj.buttons && { inline_keyboard: obj.buttons };
         const file = obj.file;
         if (file) {
@@ -294,14 +294,14 @@ export default abstract class FancyBot {
                 () => this.api.editMessageMedia({ media: { type: 'video', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
                 () => this.api.editMessageMedia({ media: { type: 'document', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
             );
-            console.log(`Fanczzzz ${res} ${foo} ${i}`)
             if (res) {
-                return true;
+                return res;
             }
         } else {
-            if ((await this.api.editMessageText({ message_id: obj.msg.chat.id, text: obj.text, reply_markup: keyb })).ok) return true;
+            const res = await this.api.editMessageText({ message_id: obj.msg.chat.id, text: obj.text, reply_markup: keyb })
+            if (res.ok) return res;
         }
-        return elseNew && this.newMessage({ ...obj, msgOrId: obj.msg });
+        return elseNew ? this.newMessage({ ...obj, msgOrId: obj.msg }) : false;
     }
 
     // #endregion Private Methods (5)
