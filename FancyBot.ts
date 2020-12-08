@@ -88,7 +88,7 @@ export default abstract class FancyBot {
         skipDefaultCommands?: boolean,
         listDefaultCommands?: boolean
     }) {
-        const forceIsVisible = obj.listDefaultCommands;
+        const forceIsVisible = !!obj.listDefaultCommands;
         const defaultCommands = !!obj.skipDefaultCommands;
 
         const fancyBot = this;
@@ -98,7 +98,7 @@ export default abstract class FancyBot {
 
         const api = this.api;
 
-        obj.skipDefaultCommands || this.setMoreCommands({
+        defaultCommands || this.setMoreCommands({
             "/nothing": new BotCmd(() => { }, 'nothing', false),
 
             [fancyBot.CMD_DEL_MSG]: new BotCmd((from: Message, restMsg?: string) => {
