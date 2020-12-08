@@ -264,7 +264,8 @@ export default abstract class FancyBot {
             if (res) {
                 return true;
             } else if (fails[0]?.description?.includes("wrong file identifier")) {
-                return this.sendDeletableMessage({ msgOrId: chatId, text: `Corrupted File: ${file}` })
+                this.sendDeletableMessage({ msgOrId: chatId, text: `Corrupted File: ${file}` })
+                throw new Error(`Corrupted File ${file}`);
             } else {
                 this.alertAdmin(`FancyBot all documents failed ${inspect(fails)}`);
                 throw new Error(`FancyBot all documents failed ${inspect(fails)}`);
