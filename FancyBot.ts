@@ -1,0 +1,303 @@
+import Axios from 'axios';
+import { Request, RequestHandler, Response } from "express";
+import { inspect } from 'util';
+
+import { BotCmd } from "./BotCmd";
+import BotCmdMap from './BotCmdMap';
+import CallbackButton from './CallbackButton';
+import MessageEntityImproved from './MessageEntityImproved';
+import TelegramApi, { FetchResult } from './TelegramApi/TelegramApi';
+import { CallbackQuery } from './TelegramApi/types/CallbackQuery';
+import { InlineKeyboardButton } from './TelegramApi/types/InlineKeyboardButton';
+import { InputFile } from './TelegramApi/types/InputFile';
+import { Message } from './TelegramApi/types/Message';
+import { Update } from './TelegramApi/types/Update';
+import TelegramApiUsingAxios from './TelegramApiUsingAxios';
+import FindFunction from "./utils/FindFunction";
+
+type NewMsgParams = { msgOrId: number | Message, text: string, file?: undefined | InputFile | string, buttons?: InlineKeyboardButton[][] };
+type UpdateMsgParams = { msg: Message, text: string, file?: string, buttons?: InlineKeyboardButton[][] };
+
+export default abstract class FancyBot {
+    // #region Properties (9)
+
+    private readonly adminID: number;
+    private readonly api: TelegramApi;
+    private readonly commands = new BotCmdMap();
+
+    protected botOnlineName: string | undefined;
+
+    readonly CMD_DEL_MSG = "del";
+    readonly DELETE_BUTTON = new CallbackButton("❌", this.CMD_DEL_MSG);
+    readonly alertAdmin = (message: string) => {
+        this.sendDeletableMessage({ msgOrId: this.adminID, text: "Alert: " + message.substr(0, 3000) }).catch(console.error);
+    }
+
+    readonly requestHandler: RequestHandler = (req: Request, res: Response) => {
+        try {
+            const update: Update = req.body;
+            const msg = update.message || update.edited_message;
+            const cbq = update.callback_query;
+            const chp = update.channel_post || update.edited_channel_post;
+
+            msg && this.messageHandler(msg);
+            cbq && this.callbackQueryHandler(cbq);
+            chp && this.channelPostHandler(chp);
+
+        } catch (error) {
+            this.alertAdmin(`FancyBot handler error: ${error}`)
+        }
+        res.send("ok 200 :)");
+    }
+
+    readonly setWebhook = async (address: string, force = false) => {
+        //TODO
+        console.info("setting up webhook...");
+        const fancyBot = this;
+        if (force) {
+            return this.api.setWebhook({ url: address });
+        }
+        const previousWebhook = await this.api.getWebookInfo();
+        const newWebook = await this.api.setWebhook({ url: address });
+        this.alertAdmin(`Webhook set to ${address}`);
+        const testPing: Update = { update_id: 1, message: { message_id: 1, text: `/ping webhook set successfully`, date: 1, chat: { id: this.adminID, type: 'private' } } }
+        Axios
+            .post(address, testPing)
+            .catch(e => { console.error(`>>>>>Error occured in setWebhook\n${e} <<<<<Error occured in setWebhook`) });
+        const status = await this.api.getWebookInfo();
+    }
+
+    // #endregion Properties (9)
+
+    // #region Constructors (1)
+
+    /**
+     * 
+     * @param token 
+     * @param adminId 
+     * @param skipDefaultCommands 
+     * @param listDefaultCommands 
+     */
+    constructor(obj: {
+        token: string,
+        adminId: number,
+        skipDefaultCommands?: boolean,
+        listDefaultCommands?: boolean
+    }) {
+        const hideDefaultCmds = !obj.listDefaultCommands;
+        const defaultCommands = obj.skipDefaultCommands;
+
+        const fancyBot = this;
+        this.api = new TelegramApiUsingAxios(obj.token);
+        this.api.getMe().then(r => this.botOnlineName = r?.result?.username).catch(r => console.error(`FancyBot api connection test failed ${r}`));
+        this.adminID = obj.adminId;
+
+        const api = this.api;
+
+        obj.skipDefaultCommands || this.setMoreCommands({
+            "/nothing": new BotCmd(() => { }, 'nothing', hideDefaultCmds),
+
+            [fancyBot.CMD_DEL_MSG]: new BotCmd((from: Message, restMsg?: string) => {
+                return (from instanceof Object) &&
+                    api.deleteMessage({ chat_id: from.chat.id, message_id: from.message_id })
+                        .catch(e => fancyBot.alertAdmin(`FancyBot del_msg error ${inspect(e).substring(0, 200)}`))
+            }, '', true),
+
+            "/help": new BotCmd((fromMsgOrId: Message | number) => {
+                fancyBot.sendDeletableMessage({ msgOrId: fromMsgOrId, text: `${fancyBot.commands}` })
+            }, 'list commands', hideDefaultCmds),
+            "/ping": new BotCmd((from: Message, restMsg?: string) => {
+                return fancyBot.sendDeletableMessage({ msgOrId: from, text: restMsg || '/pong' })
+            }, 'reply with same message', hideDefaultCmds),
+            "/pong": new BotCmd((from: Message, restMsg?: string) => {
+                return fancyBot.sendDeletableMessage({ msgOrId: from, text: restMsg || '/ping' })
+            }, 'reply with /ping', hideDefaultCmds),
+            "/id": new BotCmd((from: Message, restMsg?: string) => {
+                const userId = fancyBot.getUserID(from);
+                return fancyBot.sendDeletableMessage({ msgOrId: userId, text: String(userId) })
+            }, 'reply with id', hideDefaultCmds),
+        });
+    }
+
+    // #endregion Constructors (1)
+
+    // #region Protected Methods (8)
+
+    protected getImprovedMessageEntities(message: Message): MessageEntityImproved[] {
+        if (message.text && message.entities) {
+            const offsetWhitespace = message.text.indexOf(message.text.trimStart())
+            return message.entities.map(e => new MessageEntityImproved(
+                e,
+                message.text!.substring(e.offset, e.offset + e.length),
+                message.text!.substring(e.length + e.offset),
+                e.offset - offsetWhitespace
+            )) || [];
+        }
+        return [];
+    }
+
+    protected getMessageCommand(message: Message): MessageEntityImproved | undefined {
+        if (!message.text) return undefined;
+
+        const betterEnts = this.getImprovedMessageEntities(message);
+        const ent0 = betterEnts[0];
+
+        if (ent0.strippedOffset > 0) return undefined;
+
+        if ('bot_command' === ent0.type) {
+            return ent0;
+        } else {
+            const ent1 = betterEnts[1];
+            if (!ent1) return undefined;
+            return 'mention' === ent0.type &&
+                'bot_command' === ent1.type &&
+                message.text.substring(0, ent1.offset).trim().length === ent0.length &&
+                ent1 ||
+                undefined;
+        }
+    }
+
+    protected getUserID(msgOrId: Message | number): number {
+        if (msgOrId instanceof Object) {
+            return msgOrId.chat.id;
+        } else {
+            return msgOrId;
+        }
+    }
+
+    protected async runCommand(cmdString: string, fromMsgOrId: Message, ...params: any[]) {
+        const fancyBot = this;
+        const cmd = fancyBot.commands.get(cmdString);
+        if (cmd) {
+            return (cmd.function(fromMsgOrId, ...params));
+        } else {
+            throw new Error(`unknown command: \`${cmdString}\``)
+        }
+    }
+
+    protected async sendDeletableMessage(obj: NewMsgParams): Promise<boolean> {
+        const deleteButtonRow = [this.DELETE_BUTTON];
+        if (undefined == obj.buttons) {
+            obj.buttons = [deleteButtonRow];
+        } else {
+            obj.buttons.push(deleteButtonRow);
+        }
+        const newM = await this.newMessage(obj);
+        //removing old message when new one was created
+        if (obj.msgOrId instanceof Object && newM) {
+            this.api.deleteMessage({ chat_id: obj.msgOrId.chat.id, message_id: obj.msgOrId.message_id })
+        }
+        return newM;
+    }
+
+    protected async sendPermanentMessage(obj: UpdateMsgParams): Promise<boolean> {
+        return this.updateMessage(obj, true)
+    }
+
+    protected setCommand(cmd: string, b: BotCmd) {
+        this.commands.set(cmd, b);
+    }
+
+    protected setMoreCommands(cmds: { [cmd: string]: BotCmd }) {
+        for (const cmdName in cmds) {
+            const value = cmds[cmdName];
+            this.setCommand(cmdName, value);
+        }
+    }
+
+    // #endregion Protected Methods (8)
+
+    // #region Protected Abstract Methods (3)
+
+    protected abstract handleCallbackQuery(cbq: CallbackQuery): any;
+    protected abstract handleChannelPost(cbq: Message): any;
+    protected abstract handleMessage(message: Message, isUpdate: boolean): any;
+
+    // #endregion Protected Abstract Methods (3)
+
+    // #region Private Methods (5)
+
+    private async callbackQueryHandler(cbq: CallbackQuery) {
+        if (cbq.data) {
+            const splitIndex = (cbq.data.search(/\w\W/) + 1) || cbq.data.length;
+            const cmdString = cbq.data.substring(0, splitIndex).trim();
+            const restString = cbq.data.substring(splitIndex);
+            if (cbq.data && cbq.message && this.commands.get(cmdString)) {
+                await this.runCommand(cmdString, cbq.message, restString)
+                    .catch(e => this.alertAdmin(`FancyBot cbq ${e}`));
+            } else {
+                await this.handleCallbackQuery(cbq);
+            }
+            this.api.answerCallbackQuery({ callback_query_id: cbq.id });
+        }
+    }
+
+    private async channelPostHandler(chp: Message) {
+        this.handleChannelPost(chp);
+    }
+
+    private async messageHandler(msg: Message) {
+        const ent0 = this.getImprovedMessageEntities(msg).find(e => 0 === e.strippedOffset);
+        if (ent0) {
+            this.runCommand(ent0.string, msg, ent0.restString)
+                .catch(e => this.sendDeletableMessage({ msgOrId: msg, text: `Error: ${inspect(e)}` }));
+        } else {
+            this.handleMessage(msg, false);
+        }
+    }
+
+    private async newMessage(obj: NewMsgParams): Promise<boolean> {
+        //TODO
+        const chatId = this.getUserID(obj.msgOrId);
+        const keyb = obj.buttons && { inline_keyboard: obj.buttons };
+        const file = obj.file
+
+        if (file) {
+            const [res, foo, i] = await new FindFunction<FetchResult>(r => r.ok).run(
+                () => this.api.sendPhoto({ chat_id: chatId, photo: file, caption: obj.text, reply_markup: keyb }),
+                () => this.api.sendAudio({ chat_id: chatId, audio: file, caption: obj.text, reply_markup: keyb }),
+                () => this.api.sendVideo({ chat_id: chatId, video: file, caption: obj.text, reply_markup: keyb }),
+                () => this.api.sendAnimation({ chat_id: chatId, animation: file, caption: obj.text, reply_markup: keyb }),
+                () => this.api.sendVoice({ chat_id: chatId, voice: file, caption: obj.text, reply_markup: keyb }),
+                () => this.api.sendVideoNote({ chat_id: chatId, video_note: obj.text, reply_markup: keyb }),
+                () => this.api.sendDocument({ chat_id: chatId, document: file, caption: obj.text, reply_markup: keyb }),
+            );
+            if (res) {
+                return true;
+            } else {
+                this.alertAdmin(`FancyBot all documents failed ${inspect(obj)}`);
+                throw new Error(`FancyBot all documents failed ${inspect(obj)}`);
+            }
+        } else {
+            return (await this.api.sendMessage({ chat_id: chatId, text: obj.text, reply_markup: keyb })).ok
+        }
+    }
+
+    private async updateMessage(obj: UpdateMsgParams, elseNew = false): Promise<boolean> {
+        const keyb = obj.buttons && { inline_keyboard: obj.buttons };
+        const file = obj.file;
+        if (file) {
+            try {
+                const [res, foo, i] = await new FindFunction<FetchResult>(r => {
+                    if (r.description?.includes("message to edit not found")) throw new Error(r.description);
+                    return r.ok || r.description.includes("exactly the same");
+                }).run(
+                    () => this.api.editMessageMedia({ media: { type: 'photo', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
+                    () => this.api.editMessageMedia({ media: { type: 'animation', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
+                    () => this.api.editMessageMedia({ media: { type: 'audio', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
+                    () => this.api.editMessageMedia({ media: { type: 'video', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
+                    () => this.api.editMessageMedia({ media: { type: 'document', media: file, caption: obj.text }, reply_markup: keyb, message_id: obj.msg.message_id, chat_id: obj.msg.chat.id }),
+                );
+                console.log(`Fanczzzz ${res} ${foo} ${i}`)
+                if (res) {
+                    return true;
+                }
+            } catch (error) { }
+        } else {
+            if ((await this.api.editMessageText({ message_id: obj.msg.chat.id, text: obj.text, reply_markup: keyb })).ok) return true;
+        }
+        return elseNew && this.newMessage({ ...obj, msgOrId: obj.msg });
+    }
+
+    // #endregion Private Methods (5)
+}
