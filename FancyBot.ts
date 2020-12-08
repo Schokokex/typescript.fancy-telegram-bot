@@ -79,7 +79,7 @@ export default abstract class FancyBot {
      * 
      * @param token 
      * @param adminId 
-     * @param skipDefaultCommands 
+     * @param skipDefaultCommands defaults to false
      * @param listDefaultCommands defaults to false
      */
     constructor(obj: {
