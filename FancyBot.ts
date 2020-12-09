@@ -181,7 +181,7 @@ export default abstract class FancyBot {
      * 
      * @param obj if an obj.msgOrId Message is provided, its getting removed here
      */
-    protected async sendDeletableMessage(obj: NewMsgParams): Promise<FetchResult | false> {
+    protected async sendDeletableMessage(obj: NewMsgParams): Promise<FetchResult> {
         const buttons = (obj.buttons || []).concat([[this.DELETE_BUTTON]])
         const paramCopy = { ...obj, buttons: buttons }
         const newM = await this.newMessage(paramCopy);
@@ -192,7 +192,7 @@ export default abstract class FancyBot {
         return newM;
     }
 
-    protected async sendPermanentMessage(obj: UpdateMsgParams): Promise<FetchResult | false> {
+    protected async sendPermanentMessage(obj: UpdateMsgParams): Promise<FetchResult> {
         return this.updateMessage(obj, true)
     }
 
@@ -248,7 +248,7 @@ export default abstract class FancyBot {
         }
     }
 
-    private async newMessage(obj: NewMsgParams): Promise<FetchResult | false> {
+    private async newMessage(obj: NewMsgParams): Promise<FetchResult> {
         //TODO
         const chatId = obj.msgOrId instanceof Object ? obj.msgOrId.chat.id : obj.msgOrId
         const keyb = obj.buttons && { inline_keyboard: obj.buttons };
@@ -286,11 +286,11 @@ export default abstract class FancyBot {
         }
     }
 
-    private async updateMessage(obj: UpdateMsgParams, elseNew = false): Promise<FetchResult | false> {
+    private async updateMessage(obj: UpdateMsgParams, elseNew = false): Promise<FetchResult> {
         const keyb = obj.buttons && { inline_keyboard: obj.buttons };
         const file = obj.file;
         if (file) {
-            const [res, foo, i] = await new FindFunction<FetchResult>(
+            const [res, foo, i, fails] = await new FindFunction<FetchResult>(
                 r => r.ok || r.description.includes("exactly the same"),
                 r => r.description?.includes('message to edit not found')
             ).run(
@@ -302,12 +302,21 @@ export default abstract class FancyBot {
             );
             if (res) {
                 return res;
+            } else if (elseNew) {
+                return this.newMessage({ ...obj, msgOrId: obj.msg });
+            } else {
+                return fails[0]
             }
         } else {
             const res = await this.api.editMessageText({ message_id: obj.msg.chat.id, text: obj.text, reply_markup: keyb })
-            if (res.ok) return res;
+            if (res.ok) {
+                return res;
+            } else if (elseNew) {
+                return this.newMessage({ ...obj, msgOrId: obj.msg })
+            } else {
+                return res;
+            }
         }
-        return elseNew ? this.newMessage({ ...obj, msgOrId: obj.msg }) : false;
     }
 
     // #endregion Private Methods (5)
