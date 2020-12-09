@@ -250,6 +250,7 @@ export default abstract class FancyBot {
 
     private async newMessage(obj: NewMsgParams): Promise<FetchResult> {
         //TODO
+        const msg = obj.msgOrId instanceof Object && obj.msgOrId;
         const chatId = obj.msgOrId instanceof Object ? obj.msgOrId.chat.id : obj.msgOrId
         const keyb = obj.buttons && { inline_keyboard: obj.buttons };
         const file = obj.file
@@ -269,6 +270,7 @@ export default abstract class FancyBot {
                     () => this.api.sendDocument({ chat_id: chatId, document: file, caption: obj.text, reply_markup: keyb }),
                 );
                 if (res) {
+                    if (msg) this.api.deleteMessage({ chat_id: msg.chat.id, message_id: msg.message_id })
                     return res;
                 } else if (fails[0]?.description?.includes("wrong file identifier")) {
                     this.sendDeletableMessage({ msgOrId: chatId, text: `Corrupted File: ${file}` })
@@ -282,7 +284,9 @@ export default abstract class FancyBot {
                 throw new Error(`FancyBot newMessage error ${inspect(e)}`);
             }
         } else {
-            return this.api.sendMessage({ chat_id: chatId, text: obj.text, reply_markup: keyb });
+            const res = this.api.sendMessage({ chat_id: chatId, text: obj.text, reply_markup: keyb });
+            if (msg) this.api.deleteMessage({ chat_id: msg.chat.id, message_id: msg.message_id })
+            return res;
         }
     }
 
