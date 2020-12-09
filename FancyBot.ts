@@ -171,7 +171,7 @@ export default abstract class FancyBot {
         const fancyBot = this;
         const cmd = fancyBot.commands.get(cmdString);
         if (cmd) {
-            return (cmd.function(fromMsgOrId, ...params).catch?.((e:any)=>{
+            return (cmd.function(fromMsgOrId, ...params)?.catch?.((e:any)=>{
                 throw new Error(e)
             }));
         } else {
