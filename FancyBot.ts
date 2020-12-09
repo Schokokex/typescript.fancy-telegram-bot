@@ -1,4 +1,3 @@
-import { BotCommand } from './TelegramApi/types/BotCommand';
 import Axios from 'axios';
 import { Request, RequestHandler, Response } from "express";
 import { inspect } from 'util';
@@ -7,15 +6,13 @@ import { BotCmd } from "./BotCmd";
 import BotCmdMap from './BotCmdMap';
 import CallbackButton from './CallbackButton';
 import MessageEntityImproved from './MessageEntityImproved';
-import TelegramApiUsingAxios from './TelegramApiUsingAxios';
-
 import TelegramApi, { FetchResult } from './TelegramApi/TelegramApi';
 import { CallbackQuery } from './TelegramApi/types/CallbackQuery';
 import { InlineKeyboardButton } from './TelegramApi/types/InlineKeyboardButton';
 import { InputFile } from './TelegramApi/types/InputFile';
 import { Message } from './TelegramApi/types/Message';
 import { Update } from './TelegramApi/types/Update';
-
+import TelegramApiUsingAxios from './TelegramApiUsingAxios';
 import FindFunction from "./utils/FindFunction";
 
 type NewMsgParams = { msgOrId: number | Message, text: string, file?: undefined | InputFile | string, buttons?: InlineKeyboardButton[][] };
