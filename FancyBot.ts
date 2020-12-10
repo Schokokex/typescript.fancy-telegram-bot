@@ -145,22 +145,18 @@ export default abstract class FancyBot {
     protected getMessageCommand(message: Message): MessageEntityImproved | undefined {
         if (!message.text) return undefined;
 
-        const betterEnts = this.getImprovedMessageEntities(message);
-        const ent0 = betterEnts[0];
+        const msgEntity = this.getImprovedMessageEntities(message);
 
-        if (ent0.strippedOffset > 0) return undefined;
-
-        if ('bot_command' === ent0.type) {
-            return ent0;
-        } else {
-            const ent1 = betterEnts[1];
-            if (!ent1) return undefined;
-            return 'mention' === ent0.type &&
-                'bot_command' === ent1.type &&
-                message.text.substring(0, ent1.offset).trim().length === ent0.length &&
-                ent1 ||
-                undefined;
-        }
+        //learn haskell
+        return (msgEntity[0].strippedOffset > 0) ? undefined
+            : ('bot_command' === msgEntity[0].type) ? msgEntity[0]
+                : (
+                    msgEntity[1] &&
+                    'mention' === msgEntity[0].type &&
+                    'bot_command' === msgEntity[1].type &&
+                    message.text.substring(0, msgEntity[1].offset).trim().length === msgEntity[0].length
+                ) ? msgEntity[1]
+                    : undefined;
     }
 
 
@@ -236,13 +232,13 @@ export default abstract class FancyBot {
     }
 
     private async messageHandler(msg: Message, isUpdate: boolean) {
-        const ent0 = this.getImprovedMessageEntities(msg).find(e => 0 === e.strippedOffset);
-        if (ent0) {
+        const cmd = this.getMessageCommand(msg)
+        if (cmd) {
             try {
-                const res = await this.runCommand(ent0.string, msg, ent0.restString);
-                this.handleBotCommand(ent0, msg, isUpdate)
+                const res = await this.runCommand(cmd.string, msg, cmd.restString);
+                this.handleBotCommand(cmd, msg, isUpdate)
             } catch (e) {
-                this.sendDeletableMessage({ msgOrId: msg, text: `Cant execute ${ent0.string}: ${inspect(e)}` });
+                this.sendDeletableMessage({ msgOrId: msg, text: `Cant execute ${cmd.string}: ${inspect(e)}` });
             }
         } else {
             this.handleMessage(msg, isUpdate);
