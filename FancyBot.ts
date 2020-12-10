@@ -2,7 +2,7 @@ import Axios from 'axios';
 import { Request, RequestHandler, Response } from "express";
 import { inspect } from 'util';
 
-import { BotCmd } from "./BotCmd";
+import { BotCmd, newBotCmd } from "./BotCmd";
 import BotCmdMap from './BotCmdMap';
 import CallbackButton from './CallbackButton';
 import MessageEntityImproved from './MessageEntityImproved';
@@ -96,24 +96,24 @@ export default abstract class FancyBot {
         const api = this.api;
 
         defaultCommands || this.setMoreCommands({
-            "/nothing": new BotCmd(() => { }, 'nothing', false),
+            "/nothing": newBotCmd(() => { }, 'nothing', false),
 
-            [fancyBot.CMD_DEL_MSG]: new BotCmd((from: Message, restMsg?: string) => {
+            [fancyBot.CMD_DEL_MSG]: newBotCmd((from: Message, restMsg?: string) => {
                 return (from instanceof Object) &&
                     api.deleteMessage({ chat_id: from.chat.id, message_id: from.message_id })
                         .catch(e => fancyBot.alertAdmin(`FancyBot del_msg error ${inspect(e).substring(0, 200)}`))
             }, '', false),
 
-            "/help": new BotCmd((fromMsgOrId: Message | number) => {
+            "/help": newBotCmd((fromMsgOrId: Message | number) => {
                 fancyBot.sendDeletableMessage({ msgOrId: fromMsgOrId, text: `${fancyBot.commands}` })
             }, 'list commands', forceIsVisible),
-            "/ping": new BotCmd((from: Message, restMsg?: string) => {
+            "/ping": newBotCmd((from: Message, restMsg?: string) => {
                 return fancyBot.sendDeletableMessage({ msgOrId: from, text: restMsg || '/pong' })
             }, 'reply with same message', forceIsVisible),
-            "/pong": new BotCmd((from: Message, restMsg?: string) => {
+            "/pong": newBotCmd((from: Message, restMsg?: string) => {
                 return fancyBot.sendDeletableMessage({ msgOrId: from, text: restMsg || '/ping' })
             }, 'reply with /ping', forceIsVisible),
-            "/id": new BotCmd((from: Message, restMsg?: string) => {
+            "/id": newBotCmd((from: Message, restMsg?: string) => {
                 const userId = from.chat.id
                 return fancyBot.sendDeletableMessage({ msgOrId: userId, text: `\`${userId}\`` })
             }, 'reply with id', forceIsVisible),
@@ -210,7 +210,7 @@ export default abstract class FancyBot {
     protected abstract handleCallbackQuery(cbq: CallbackQuery): any;
     protected abstract handleChannelPost(cbq: Message): any;
     protected abstract handleMessage(message: Message, isUpdate: boolean): any;
-    protected abstract handeBotCommand(message: Message, isUpdate: boolean): any;
+    protected abstract handeBotCommand(entity: MessageEntityImproved, message: Message, isUpdate: boolean): any;
 
     // #endregion Protected Abstract Methods (3)
 
@@ -240,7 +240,7 @@ export default abstract class FancyBot {
         if (ent0) {
             try {
                 const res = await this.runCommand(ent0.string, msg, ent0.restString);
-                this.handeBotCommand(msg, isUpdate)
+                this.handeBotCommand(ent0, msg, isUpdate)
             } catch (e) {
                 this.sendDeletableMessage({ msgOrId: msg, text: `Cant execute ${ent0.string}: ${inspect(e)}` });
             }

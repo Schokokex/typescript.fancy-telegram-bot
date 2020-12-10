@@ -1,13 +1,15 @@
 import { BotCmdFunction } from './BotCmdFunction';
 
-export class BotCmd {
+export type BotCmd = {
     readonly function: BotCmdFunction;
     readonly description?: string;
     readonly overrideDontShow?: boolean;
     readonly forceIsVisible: boolean | undefined;
-    constructor(func: BotCmdFunction, desc?: string, forceIsVisible?: boolean | undefined) {
-        this.function = func;
-        this.description = desc;
-        this.forceIsVisible = forceIsVisible;
+}
+export const newBotCmd = (func: BotCmdFunction, desc?: string, forceIsVisible?: boolean | undefined): BotCmd => {
+    return {
+        function: func,
+        description: desc,
+        forceIsVisible: forceIsVisible,
     }
 }
