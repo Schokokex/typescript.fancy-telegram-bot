@@ -210,7 +210,7 @@ export default abstract class FancyBot {
     protected abstract handleCallbackQuery(cbq: CallbackQuery): any;
     protected abstract handleChannelPost(cbq: Message): any;
     protected abstract handleMessage(message: Message, isUpdate: boolean): any;
-    protected abstract handeBotCommand(entity: MessageEntityImproved, message: Message, isUpdate: boolean): any;
+    protected abstract handleBotCommand(entity: MessageEntityImproved, message: Message, isUpdate: boolean): any;
 
     // #endregion Protected Abstract Methods (3)
 
@@ -240,7 +240,7 @@ export default abstract class FancyBot {
         if (ent0) {
             try {
                 const res = await this.runCommand(ent0.string, msg, ent0.restString);
-                this.handeBotCommand(ent0, msg, isUpdate)
+                this.handleBotCommand(ent0, msg, isUpdate)
             } catch (e) {
                 this.sendDeletableMessage({ msgOrId: msg, text: `Cant execute ${ent0.string}: ${inspect(e)}` });
             }
