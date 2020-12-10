@@ -116,7 +116,7 @@ export default abstract class FancyBot {
             }, 'reply with /ping', forceIsVisible),
             "/id": new BotCmd((from: Message, restMsg?: string) => {
                 const userId = from.chat.id
-                return fancyBot.sendDeletableMessage({ msgOrId: userId, text: String(userId) })
+                return fancyBot.sendDeletableMessage({ msgOrId: userId, text: `\`${userId}\`` })
             }, 'reply with id', forceIsVisible),
         });
     }
