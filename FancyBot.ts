@@ -41,7 +41,7 @@ export default abstract class FancyBot {
             const cbq = update.callback_query;
             const chp = update.channel_post || update.edited_channel_post;
 
-            msg && this.messageHandler(msg);
+            msg && this.messageHandler(msg, Boolean(update.edited_message));
             cbq && this.callbackQueryHandler(cbq);
             chp && this.channelPostHandler(chp);
 
@@ -172,7 +172,7 @@ export default abstract class FancyBot {
                 throw new Error(e)
             }));
         } else {
-            throw new Error(`unknown command: \`${cmdString}\``)
+            return false
         }
     }
 
@@ -210,6 +210,7 @@ export default abstract class FancyBot {
     protected abstract handleCallbackQuery(cbq: CallbackQuery): any;
     protected abstract handleChannelPost(cbq: Message): any;
     protected abstract handleMessage(message: Message, isUpdate: boolean): any;
+    protected abstract handeBotCommand(message: Message, isUpdate: boolean): any;
 
     // #endregion Protected Abstract Methods (3)
 
@@ -234,13 +235,17 @@ export default abstract class FancyBot {
         this.handleChannelPost(chp);
     }
 
-    private async messageHandler(msg: Message) {
+    private async messageHandler(msg: Message, isUpdate: boolean) {
         const ent0 = this.getImprovedMessageEntities(msg).find(e => 0 === e.strippedOffset);
         if (ent0) {
-            this.runCommand(ent0.string, msg, ent0.restString)
-                .catch(e => this.sendDeletableMessage({ msgOrId: msg, text: `Error: ${inspect(e)}` }));
+            try {
+                const res = await this.runCommand(ent0.string, msg, ent0.restString);
+                this.handeBotCommand(msg, isUpdate)
+            } catch (e) {
+                this.sendDeletableMessage({ msgOrId: msg, text: `Cant execute ${ent0.string}: ${inspect(e)}` });
+            }
         } else {
-            this.handleMessage(msg, false);
+            this.handleMessage(msg, isUpdate);
         }
     }
 
