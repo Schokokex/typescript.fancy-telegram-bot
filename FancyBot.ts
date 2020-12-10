@@ -9,7 +9,6 @@ import MessageEntityImproved from './MessageEntityImproved';
 import TelegramApi, { FetchResult } from './TelegramApi/TelegramApi';
 import { CallbackQuery } from './TelegramApi/types/CallbackQuery';
 import { InlineKeyboardButton } from './TelegramApi/types/InlineKeyboardButton';
-import { InputFile } from './TelegramApi/types/InputFile';
 import { Message } from './TelegramApi/types/Message';
 import { Update } from './TelegramApi/types/Update';
 import TelegramApiUsingAxios from './TelegramApiUsingAxios';
@@ -177,15 +176,13 @@ export default abstract class FancyBot {
         }
     }
 
-    /**
-     * 
-     * @param obj if an obj.msgOrId Message is provided, its getting removed here
-     */
+
     protected async sendDeletableMessage(obj: NewMsgParams): Promise<FetchResult> {
         const buttons = (obj.buttons || []).concat([[this.DELETE_BUTTON]])
         const paramCopy = { ...obj, buttons: buttons }
-        if (obj.msgOrId instanceof Object) {
-            return this.updateMessage({ ...paramCopy, msg: <Message>obj.msgOrId })
+        const isMessage = obj.msgOrId instanceof Object;
+        if (isMessage) {
+            return this.updateMessage({ ...paramCopy, msg: <Message>obj.msgOrId }, true)
         } else {
             return this.newMessage(paramCopy);
         }
@@ -311,7 +308,7 @@ export default abstract class FancyBot {
                 return fails[0]
             }
         } else {
-            const res = await this.api.editMessageText({ message_id: obj.msg.chat.id, text: obj.text, reply_markup: keyb })
+            const res = await this.api.editMessageText({ chat_id: obj.msg.chat.id, message_id: obj.msg.message_id, text: obj.text, reply_markup: keyb })
             if (res.ok) {
                 return res;
             } else if (elseNew) {
