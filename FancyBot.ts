@@ -15,7 +15,8 @@ import { Update } from './TelegramApi/types/Update';
 import TelegramApiUsingAxios from './TelegramApiUsingAxios';
 import FindFunction from "./utils/FindFunction";
 
-type NewMsgParams = { msgOrId: number | Message, text: string, file?: undefined | InputFile | string, buttons?: InlineKeyboardButton[][] };
+
+type NewMsgParams = { msgOrId: number | Message, text: string, file?: string, buttons?: InlineKeyboardButton[][] };
 type UpdateMsgParams = { msg: Message, text: string, file?: string, buttons?: InlineKeyboardButton[][] };
 
 export default abstract class FancyBot {
@@ -168,7 +169,7 @@ export default abstract class FancyBot {
         const fancyBot = this;
         const cmd = fancyBot.commands.get(cmdString);
         if (cmd) {
-            return (cmd.function(fromMsgOrId, ...params)?.catch?.((e:any)=>{
+            return (cmd.function(fromMsgOrId, ...params)?.catch?.((e: any) => {
                 throw new Error(e)
             }));
         } else {
@@ -183,12 +184,11 @@ export default abstract class FancyBot {
     protected async sendDeletableMessage(obj: NewMsgParams): Promise<FetchResult> {
         const buttons = (obj.buttons || []).concat([[this.DELETE_BUTTON]])
         const paramCopy = { ...obj, buttons: buttons }
-        const newM = await this.newMessage(paramCopy);
-        //removing old message when new one was created
-        if (obj.msgOrId instanceof Object && newM) {
-            this.api.deleteMessage({ chat_id: obj.msgOrId.chat.id, message_id: obj.msgOrId.message_id })
+        if (obj.msgOrId instanceof Object) {
+            return this.updateMessage({ ...paramCopy, msg: <Message>obj.msgOrId })
+        } else {
+            return this.newMessage(paramCopy);
         }
-        return newM;
     }
 
     protected async sendPermanentMessage(obj: UpdateMsgParams): Promise<FetchResult> {
