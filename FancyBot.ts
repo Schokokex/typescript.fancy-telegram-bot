@@ -148,7 +148,7 @@ export default abstract class FancyBot {
         const msgEntity = this.getImprovedMessageEntities(message);
 
         //learn haskell
-        return (msgEntity[0].strippedOffset > 0) ? undefined
+        return msgEntity[0] ? (msgEntity[0].strippedOffset > 0) ? undefined
             : ('bot_command' === msgEntity[0].type) ? msgEntity[0]
                 : (
                     msgEntity[1] &&
@@ -156,7 +156,8 @@ export default abstract class FancyBot {
                     'bot_command' === msgEntity[1].type &&
                     message.text.substring(0, msgEntity[1].offset).trim().length === msgEntity[0].length
                 ) ? msgEntity[1]
-                    : undefined;
+                    : undefined
+            : undefined;
     }
 
 
