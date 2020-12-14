@@ -1,2 +1,4 @@
-import { ReadStream } from "fs";
-export type InputFile = ReadStream
+/** @format */
+
+import { ReadStream } from 'fs';
+export type InputFile = ReadStream;

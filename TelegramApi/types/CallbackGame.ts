@@ -1,2 +1,3 @@
-export type CallbackGame = {
-}
+/** @format */
+
+export type CallbackGame = {};

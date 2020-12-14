@@ -1,14 +1,12 @@
-
 /**
-* This object represents a unique message identifier.
-*/
+ * This object represents a unique message identifier.
+ *
+ * @format
+ */
+
 export type MessageId = {
-  
-  
-  /**
-  * Unique message identifier
-  */
-  message_id: number,
-  
-  
-}
+	/**
+	 * Unique message identifier
+	 */
+	message_id: number;
+};

@@ -1,1 +1,3 @@
-export type Dict<T=any> = {[_:string]:T}
+/** @format */
+
+export type Dict<T = any> = { [_: string]: T };
