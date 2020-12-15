@@ -1,3 +1,3 @@
 /** @format */
 
-export type Dict<T = any> = { [_: string]: T };
+export type Dict<T = any> = Record<string, T>
