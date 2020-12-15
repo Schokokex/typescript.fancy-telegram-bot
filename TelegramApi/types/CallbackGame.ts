@@ -1,3 +1,3 @@
 /** @format */
 
-export type CallbackGame = {};
+export type CallbackGame = Record<string, never>;

@@ -31,8 +31,6 @@ type UpdateMsgParams = {
 };
 
 export default abstract class FancyBot {
-	// #region Properties (9)
-
 	private readonly adminID: number;
 	private readonly api: TelegramApi;
 	private readonly commands = new BotCmdMap();
@@ -90,10 +88,6 @@ export default abstract class FancyBot {
 		});
 		const status = await this.api.getWebookInfo();
 	};
-
-	// #endregion Properties (9)
-
-	// #region Constructors (1)
 
 	/**
 	 *
@@ -185,10 +179,6 @@ export default abstract class FancyBot {
 			});
 	}
 
-	// #endregion Constructors (1)
-
-	// #region Protected Methods (8)
-
 	protected async uploadCommands() {
 		const cmds = this.commands
 			.toArray()
@@ -276,10 +266,6 @@ export default abstract class FancyBot {
 		}
 	}
 
-	// #endregion Protected Methods (8)
-
-	// #region Protected Abstract Methods (3)
-
 	protected abstract handleCallbackQuery(cbq: CallbackQuery): any;
 	protected abstract handleChannelPost(cbq: Message): any;
 	protected abstract handleMessage(message: Message, isUpdate: boolean): any;
@@ -288,10 +274,6 @@ export default abstract class FancyBot {
 		message: Message,
 		isUpdate: boolean,
 	): any;
-
-	// #endregion Protected Abstract Methods (3)
-
-	// #region Private Methods (5)
 
 	private async callbackQueryHandler(cbq: CallbackQuery) {
 		if (cbq.data) {
@@ -515,6 +497,4 @@ export default abstract class FancyBot {
 			}
 		}
 	}
-
-	// #endregion Private Methods (5)
 }
