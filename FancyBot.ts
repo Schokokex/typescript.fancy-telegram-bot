@@ -64,7 +64,7 @@ export default abstract class FancyBot {
 	};
 
 	readonly setWebhook = async (address: string, force = false) => {
-		//TODO
+		//TODO not working atm?
 		console.info('setting up webhook...');
 		if (force) {
 			return this.api.setWebhook({ url: address });
@@ -313,7 +313,6 @@ export default abstract class FancyBot {
 	}
 
 	private async newMessage(obj: NewMsgParams): Promise<FetchResult> {
-		//TODO
 		const msg = obj.msgOrId instanceof Object && obj.msgOrId;
 		const chatId = obj.msgOrId instanceof Object ? obj.msgOrId.chat.id : obj.msgOrId;
 		const keyb = obj.buttons && { inline_keyboard: obj.buttons };
