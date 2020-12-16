@@ -282,7 +282,7 @@ export default abstract class FancyBot {
 			const restString = cbq.data.substring(splitIndex);
 			if (cbq.data && cbq.message && this.commands.get(cmdString)) {
 				await this.runCommand(cmdString, cbq.message, restString).catch(e =>
-					this.alertAdmin(`FancyBot cbq ${e}`),
+					this.alertAdmin(`FancyBot cbq ${e}; message: ${inspect(cbq.message)}`),
 				);
 			} else {
 				await this.handleCallbackQuery(cbq);
