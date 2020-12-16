@@ -2,6 +2,8 @@
 
 import { Immutable } from './Immutable';
 type Func<T> = () => T | Promise<T>;
+type GoodResult<T> = [T, Func<T>, number, T[]]
+type BadResult<T> = [undefined, undefined, undefined, T[]]
 
 /**
  * an implementation similar to [].find() , but works with async functions
@@ -36,7 +38,7 @@ export default class FindFunction<T> {
 	 */
 	readonly run = async (
 		...functions: Func<T>[]
-	): Promise<Immutable<[T, Func<T>, number, T[]] | [undefined, undefined, undefined, T[]]>> => {
+	): Promise< Immutable<GoodResult<T>> | Immutable<BadResult<T>> > => {
 		const res = [];
 		//run functions one by one
 		for (const [i, foo] of functions.entries()) {
