@@ -1,0 +1,7 @@
+{
+    "version": "0.1.0",
+    "dependencies": {
+        "telegram-bot-methods": "^5.0.3",
+        "telegram-bot-types": "^5.0.3"
+    }
+}

@@ -1,7 +1,8 @@
 /** @format */
 
-import TelegramApi, { FetchResult } from './TelegramApi/TelegramApi';
+import TelegramApi, { FetchResult } from 'telegram-bot-methods';
 import Axios from 'axios';
+
 export default class TelegramApiUsingAxios extends TelegramApi {
 	private token;
 	constructor(token: string) {
