@@ -1,6 +1,7 @@
 /** @format */
 
-import { InlineKeyboardButton } from './TelegramApi/types/InlineKeyboardButton';
+import { InlineKeyboardButton } from "telegram-bot-types/lib/types/core/InlineKeyboardButton";
+
 
 export default class CallbackButton implements InlineKeyboardButton {
 	readonly text: string;

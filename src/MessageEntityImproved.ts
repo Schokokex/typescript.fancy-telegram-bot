@@ -1,6 +1,7 @@
 /** @format */
 
-import { MessageEntity } from './TelegramApi/types/MessageEntity';
+import { MessageEntity } from "telegram-bot-types/lib/types/core/MessageEntity";
+
 
 export default class MessageEntityImproved implements MessageEntity {
 	readonly type: string;

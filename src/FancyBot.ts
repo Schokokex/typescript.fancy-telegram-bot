@@ -9,13 +9,13 @@ import BotCmdMap from './BotCmdMap';
 import CallbackButton from './CallbackButton';
 import MessageEntityImproved from './MessageEntityImproved';
 
-import TelegramApi, { FetchResult } from './TelegramApi/TelegramApi';
-import { CallbackQuery } from './TelegramApi/types/CallbackQuery';
-import { InlineKeyboardButton } from './TelegramApi/types/InlineKeyboardButton';
-import { Message } from './TelegramApi/types/Message';
-import { Update } from './TelegramApi/types/Update';
+import TelegramApi, { FetchResult } from 'telegram-bot-methods';
 import TelegramApiUsingAxios from './TelegramApiUsingAxios';
 import FindFunction from './utils/FindFunction';
+import { Message } from 'telegram-bot-types/lib/types/core/Message';
+import { InlineKeyboardButton } from 'telegram-bot-types/lib/types/core/InlineKeyboardButton';
+import { Update } from 'telegram-bot-types/lib/types/core/Update';
+import { CallbackQuery } from 'telegram-bot-types/lib/types/core/CallbackQuery';
 
 type NewMsgParams = {
 	msgOrId: number | Message;
