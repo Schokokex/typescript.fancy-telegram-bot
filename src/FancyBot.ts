@@ -22,12 +22,14 @@ type NewMsgParams = {
 	text: string;
 	file?: string;
 	buttons?: InlineKeyboardButton[][];
+	parse_mode?: 'MarkdownV2' | 'HTML';
 };
 type UpdateMsgParams = {
 	msg: Message;
 	text: string;
 	file?: string;
 	buttons?: InlineKeyboardButton[][];
+	parse_mode?: 'MarkdownV2' | 'HTML';
 };
 
 export default abstract class FancyBot {
@@ -171,6 +173,7 @@ export default abstract class FancyBot {
 						return this.sendDeletableMessage({
 							msgOrId: userId,
 							text: `\`${userId}\``,
+							parse_mode: 'MarkdownV2'
 						});
 					},
 					'reply with id',
@@ -399,6 +402,7 @@ export default abstract class FancyBot {
 				chat_id: chatId,
 				text: obj.text,
 				reply_markup: keyb,
+				parse_mode: obj.parse_mode,
 			});
 			if (msg)
 				this.api.deleteMessage({
