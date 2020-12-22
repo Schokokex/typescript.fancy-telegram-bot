@@ -151,7 +151,7 @@ export default abstract class FancyBot {
 					(from: Message) => {
 						return this.sendDeletableMessage({
 							msgOrId: from,
-							text: inspect(from),
+							text: inspect(from, undefined, 5),
 						});
 					},
 					'reply with message object',
