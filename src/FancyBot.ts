@@ -147,6 +147,16 @@ export default abstract class FancyBot {
 					'list commands',
 					forceIsVisible,
 				),
+				'/ping2': newBotCmd(
+					(from: Message) => {
+						return this.sendDeletableMessage({
+							msgOrId: from,
+							text: inspect(from),
+						});
+					},
+					'reply with message object',
+					forceIsVisible,
+				),
 				'/ping': newBotCmd(
 					(from: Message, restMsg?: string) => {
 						return this.sendDeletableMessage({
