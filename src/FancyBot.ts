@@ -16,11 +16,14 @@ import { Message } from 'telegram-bot-types/lib/types/core/Message';
 import { InlineKeyboardButton } from 'telegram-bot-types/lib/types/core/InlineKeyboardButton';
 import { Update } from 'telegram-bot-types/lib/types/core/Update';
 import { CallbackQuery } from 'telegram-bot-types/lib/types/core/CallbackQuery';
+import { InlineKeyboardMarkup } from 'telegram-bot-types/lib/types/core/InlineKeyboardMarkup';
+import { ForceReply } from 'telegram-bot-types/lib/types/core/ForceReply';
 
 type NewMsgParams = {
 	msgOrId: number | Message;
 	text: string;
 	file?: string;
+	reply_markup?: InlineKeyboardMarkup | ForceReply;
 	buttons?: InlineKeyboardButton[][];
 	parse_mode?: 'MarkdownV2' | 'HTML';
 };
@@ -183,7 +186,7 @@ export default abstract class FancyBot {
 						return this.sendDeletableMessage({
 							msgOrId: userId,
 							text: `\`${userId}\``,
-							parse_mode: 'MarkdownV2'
+							parse_mode: 'MarkdownV2',
 						});
 					},
 					'reply with id',
@@ -268,6 +271,15 @@ export default abstract class FancyBot {
 		return this.updateMessage(obj, true);
 	}
 
+	protected async askQuestion(userID: number, question: string, identifier: string) {
+		return this.sendDeletableMessage({
+			msgOrId: userID,
+			text: `<pre><code class="language--questionID${identifier}">Question:</code></pre>${question}`,
+			parse_mode: 'HTML',
+			reply_markup: { force_reply: true },
+		});
+	}
+
 	protected setCommand(cmd: string, b: BotCmd) {
 		this.commands.set(cmd, b);
 	}
@@ -279,6 +291,7 @@ export default abstract class FancyBot {
 		}
 	}
 
+	protected abstract handleQuestionAnswer(identifier: string, message: Message): any;
 	protected abstract handleCallbackQuery(cbq: CallbackQuery): any;
 	protected abstract handleChannelPost(cbq: Message): any;
 	protected abstract handleMessage(message: Message, isUpdate: boolean): any;
@@ -310,6 +323,8 @@ export default abstract class FancyBot {
 
 	private async messageHandler(msg: Message, isUpdate: boolean) {
 		const cmd = this.getMessageCommand(msg);
+
+		const replyCodeLanguage = msg.reply_to_message?.entities?.[0].language; //for later
 		if (cmd) {
 			try {
 				const res = await this.runCommand(cmd.string, msg, cmd.restString);
@@ -320,6 +335,12 @@ export default abstract class FancyBot {
 					text: `Cant execute ${cmd.string}: ${inspect(e)}`,
 				});
 			}
+		} else if (replyCodeLanguage?.startsWith('-question')) {
+			this.api.deleteMessage({ chat_id: msg.chat.id, message_id: msg.message_id });
+			this.handleQuestionAnswer(replyCodeLanguage.split('-question')[1], {
+				...msg,
+				reply_to_message: undefined,
+			});
 		} else {
 			this.handleMessage(msg, isUpdate);
 		}
@@ -328,7 +349,7 @@ export default abstract class FancyBot {
 	private async newMessage(obj: NewMsgParams): Promise<FetchResult> {
 		const msg = obj.msgOrId instanceof Object && obj.msgOrId;
 		const chatId = obj.msgOrId instanceof Object ? obj.msgOrId.chat.id : obj.msgOrId;
-		const keyb = obj.buttons && { inline_keyboard: obj.buttons };
+		const replMarkup = obj.reply_markup || (obj.buttons && { inline_keyboard: obj.buttons });
 		const file = obj.file;
 
 		if (file) {
@@ -342,48 +363,48 @@ export default abstract class FancyBot {
 							chat_id: chatId,
 							photo: file,
 							caption: obj.text,
-							reply_markup: keyb,
+							reply_markup: replMarkup,
 						}),
 					() =>
 						this.api.sendAudio({
 							chat_id: chatId,
 							audio: file,
 							caption: obj.text,
-							reply_markup: keyb,
+							reply_markup: replMarkup,
 						}),
 					() =>
 						this.api.sendVideo({
 							chat_id: chatId,
 							video: file,
 							caption: obj.text,
-							reply_markup: keyb,
+							reply_markup: replMarkup,
 						}),
 					() =>
 						this.api.sendAnimation({
 							chat_id: chatId,
 							animation: file,
 							caption: obj.text,
-							reply_markup: keyb,
+							reply_markup: replMarkup,
 						}),
 					() =>
 						this.api.sendVoice({
 							chat_id: chatId,
 							voice: file,
 							caption: obj.text,
-							reply_markup: keyb,
+							reply_markup: replMarkup,
 						}),
 					() =>
 						this.api.sendVideoNote({
 							chat_id: chatId,
 							video_note: obj.text,
-							reply_markup: keyb,
+							reply_markup: replMarkup,
 						}),
 					() =>
 						this.api.sendDocument({
 							chat_id: chatId,
 							document: file,
 							caption: obj.text,
-							reply_markup: keyb,
+							reply_markup: replMarkup,
 						}),
 				);
 				if (res) {
@@ -411,7 +432,7 @@ export default abstract class FancyBot {
 			const res = this.api.sendMessage({
 				chat_id: chatId,
 				text: obj.text,
-				reply_markup: keyb,
+				reply_markup: replMarkup,
 				parse_mode: obj.parse_mode,
 			});
 			if (msg)
@@ -424,7 +445,7 @@ export default abstract class FancyBot {
 	}
 
 	private async updateMessage(obj: UpdateMsgParams, elseNew = false): Promise<FetchResult> {
-		const keyb = obj.buttons && { inline_keyboard: obj.buttons };
+		const replMarkup = obj.buttons && { inline_keyboard: obj.buttons };
 		const file = obj.file;
 		if (file) {
 			const [res, foo, i, fails] = await new FindFunction<FetchResult>(
@@ -438,7 +459,7 @@ export default abstract class FancyBot {
 							media: file,
 							caption: obj.text,
 						},
-						reply_markup: keyb,
+						reply_markup: replMarkup,
 						message_id: obj.msg.message_id,
 						chat_id: obj.msg.chat.id,
 					}),
@@ -449,7 +470,7 @@ export default abstract class FancyBot {
 							media: file,
 							caption: obj.text,
 						},
-						reply_markup: keyb,
+						reply_markup: replMarkup,
 						message_id: obj.msg.message_id,
 						chat_id: obj.msg.chat.id,
 					}),
@@ -460,7 +481,7 @@ export default abstract class FancyBot {
 							media: file,
 							caption: obj.text,
 						},
-						reply_markup: keyb,
+						reply_markup: replMarkup,
 						message_id: obj.msg.message_id,
 						chat_id: obj.msg.chat.id,
 					}),
@@ -471,7 +492,7 @@ export default abstract class FancyBot {
 							media: file,
 							caption: obj.text,
 						},
-						reply_markup: keyb,
+						reply_markup: replMarkup,
 						message_id: obj.msg.message_id,
 						chat_id: obj.msg.chat.id,
 					}),
@@ -482,7 +503,7 @@ export default abstract class FancyBot {
 							media: file,
 							caption: obj.text,
 						},
-						reply_markup: keyb,
+						reply_markup: replMarkup,
 						message_id: obj.msg.message_id,
 						chat_id: obj.msg.chat.id,
 					}),
@@ -499,7 +520,7 @@ export default abstract class FancyBot {
 				chat_id: obj.msg.chat.id,
 				message_id: obj.msg.message_id,
 				text: obj.text,
-				reply_markup: keyb,
+				reply_markup: replMarkup,
 			});
 			if (res.ok) {
 				return res;
