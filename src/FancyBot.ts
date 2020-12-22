@@ -42,8 +42,8 @@ export default abstract class FancyBot {
 
 	protected botOnlineName: string | undefined;
 
-	readonly CMD_DEL_MSG = 'del';
-	readonly QUESTION_LNG = '-questionID';
+	readonly CMD_DEL_MSG = 'del'; //the callback data from deleting messages
+	readonly QUESTION_LNG = '-questionID'; // this is placed instead of a language in markdown-code to transport some payload
 	readonly DELETE_BUTTON = new CallbackButton('❌', this.CMD_DEL_MSG);
 
 	readonly alertAdmin = (message: string) => {
