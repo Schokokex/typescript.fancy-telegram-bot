@@ -43,6 +43,7 @@ export default abstract class FancyBot {
 	protected botOnlineName: string | undefined;
 
 	readonly CMD_DEL_MSG = 'del';
+	readonly QUESTION_LNG = '-questionID';
 	readonly DELETE_BUTTON = new CallbackButton('❌', this.CMD_DEL_MSG);
 
 	readonly alertAdmin = (message: string) => {
@@ -274,7 +275,7 @@ export default abstract class FancyBot {
 	protected async askQuestion(userID: number, question: string, identifier: string) {
 		return this.sendDeletableMessage({
 			msgOrId: userID,
-			text: `<pre><code class="language--questionID${identifier}">Question:</code></pre>${question}`,
+			text: `<pre><code class="language-${this.QUESTION_LNG}${identifier}">Question:</code></pre>${question}`,
 			parse_mode: 'HTML',
 			reply_markup: { force_reply: true },
 		});
@@ -335,9 +336,9 @@ export default abstract class FancyBot {
 					text: `Cant execute ${cmd.string}: ${inspect(e)}`,
 				});
 			}
-		} else if (replyCodeLanguage?.startsWith('-question')) {
+		} else if (replyCodeLanguage?.startsWith(this.QUESTION_LNG)) {
 			this.api.deleteMessage({ chat_id: msg.chat.id, message_id: msg.message_id });
-			this.handleQuestionAnswer(replyCodeLanguage.split('-question')[1], {
+			this.handleQuestionAnswer(replyCodeLanguage.split(this.QUESTION_LNG)[1], {
 				...msg,
 				reply_to_message: undefined,
 			});
